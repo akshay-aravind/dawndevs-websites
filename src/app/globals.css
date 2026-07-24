@@ -1,26 +1,207 @@
 @import "tailwindcss";
 
+/* ===========================================================================
+   DawnDevs — "Nocturne" design system
+   A dark, elegant, sleek monochrome. Near-black canvas, off-white type,
+   hairline detail, refined serif display. Premium through restraint.
+=========================================================================== */
+@theme {
+  --color-bg: #0a0a0b; /* near-black canvas */
+  --color-surface: #121214; /* raised panel */
+  --color-surface-2: #17171a;
+  --color-ink: #f3f2ef; /* primary text — warm white */
+  --color-muted: #a2a1a6; /* secondary text */
+  --color-faint: #67666d; /* tertiary / labels */
+  --color-line: rgba(243, 242, 239, 0.1); /* hairline */
+  --color-line-2: rgba(243, 242, 239, 0.2);
+  --color-accent: #d9c9a8; /* whisper of champagne — used very sparingly */
+
+  --font-display: var(--font-display), Georgia, serif;
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --bg: #0a0a0b;
+  --ink: #f3f2ef;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  letter-spacing: -0.006em;
+  overflow: hidden; /* the book owns the viewport; pages scroll internally */
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-line-2);
+  outline-offset: 4px;
+}
+
+/* Type ---------------------------------------------------------------------- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.italic {
+  font-style: italic;
+}
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+/* subtle white gradient text for a refined sheen */
+.sheen {
+  background: linear-gradient(180deg, #ffffff 0%, #cfceca 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Panels -------------------------------------------------------------------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+}
+.hairline {
+  height: 1px;
+  width: 100%;
+  background: var(--color-line);
+}
+
+/* Buttons ------------------------------------------------------------------- */
+.btn-solid {
+  background: var(--color-ink);
+  color: #0a0a0b;
+  transition: transform 0.25s ease, background 0.25s ease, opacity 0.25s ease;
+}
+.btn-solid:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+.btn-ghost {
+  border: 1px solid var(--color-line-2);
+  color: var(--color-ink);
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+.btn-ghost:hover {
+  border-color: var(--color-ink);
+  background: rgba(243, 242, 239, 0.04);
+}
+
+/* Atmosphere ---------------------------------------------------------------- */
+/* faint top spotlight to seat the light */
+.spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      70% 55% at 50% -8%,
+      rgba(243, 242, 239, 0.09),
+      transparent 60%
+    ),
+    radial-gradient(
+      90% 70% at 50% 120%,
+      rgba(243, 242, 239, 0.04),
+      transparent 65%
+    );
+}
+
+/* fine grain */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* form fields */
+.field {
+  width: 100%;
+  border: 1px solid var(--color-line-2);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.8rem 1rem;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.field::placeholder {
+  color: var(--color-faint);
+}
+.field:focus {
+  border-color: var(--color-ink);
+  background: rgba(255, 255, 255, 0.04);
+}
+select.field option {
+  background: #121214;
+  color: var(--color-ink);
+}
+
+/* terminal / boot preloader */
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+.caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 2px;
+  transform: translateY(0.12em);
+  background: var(--color-ink);
+  animation: blink 1s steps(1) infinite;
+}
+
+/* Reduced motion ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
