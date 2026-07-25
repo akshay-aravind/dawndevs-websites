@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { motion } from "motion/react";
+import { motion, useMotionValue, animate } from "motion/react";
 import Atmosphere from "./Atmosphere";
 import ShaderBackdrop from "./ShaderBackdrop";
 import Landing from "./pages/Landing";
@@ -47,6 +47,7 @@ const PAGES = [
 
 const TOTAL = PAGES.length;
 const EASE = [0.7, 0, 0.2, 1] as const;
+const SPRING = { type: "spring", stiffness: 380, damping: 42 } as const;
 
 export default function Book() {
   const [page, setPage] = useState(0);
@@ -55,7 +56,18 @@ export default function Book() {
   const [booting, setBooting] = useState(true);
   const dir = useRef(1);
   const lock = useRef(false);
-  const touch = useRef({ x: 0, y: 0 });
+  // gesture drag — the current page follows the finger, then eases into the
+  // next page on release (a real "I'm turning the page" feel, not a snap).
+  const dragX = useMotionValue(0);
+  const dragY = useMotionValue(0);
+  const start = useRef({ x: 0, y: 0 });
+  const origin = useRef({ x: 0, y: 0 }); // rebased when a drag engages mid-scroll
+  const axis = useRef<"x" | "y" | null>(null);
+  const engaged = useRef(false);
+  const vel = useRef({ x: 0, y: 0 });
+  const lastPt = useRef({ t: 0, x: 0, y: 0 });
+  // entrance style depends on how the turn was triggered (finger vs wheel/keys)
+  const turnSource = useRef<"gesture" | "other">("other");
   // keep a ref of page so wheel/key handlers always see the latest
   const pageRef = useRef(0);
   useEffect(() => {
@@ -131,30 +143,151 @@ export default function Book() {
     }
     turn(d);
   };
-  const onTouchStart = (e: React.TouchEvent) => {
-    touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  // ---- swipe-to-turn (drag follows the finger) --------------------------
+  const canTurn = (d: number) =>
+    d > 0 ? pageRef.current < TOTAL - 1 : pageRef.current > 0;
+
+  // is the inner scroller at the edge in the drag direction? (d>0 = going to
+  // the next page, so we only take over once the page is scrolled to the bottom)
+  const atEdge = (scroller: HTMLElement | null, d: number) => {
+    if (!scroller) return true;
+    if (d > 0)
+      return (
+        scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1
+      );
+    return scroller.scrollTop <= 1;
   };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - touch.current.x;
-    const dy = e.changedTouches[0].clientY - touch.current.y;
-    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)) turn(-dx);
+
+  // release past the threshold: slide the current page the rest of the way out
+  // in the drag direction, then swap in the next page (which fades up).
+  const completeTurn = (ax: "x" | "y", d: number) => {
+    lock.current = true;
+    turnSource.current = "gesture";
+    const mv = ax === "y" ? dragY : dragX;
+    const dim = ax === "y" ? window.innerHeight : window.innerWidth;
+    animate(mv, d > 0 ? -dim : dim, {
+      duration: 0.28,
+      ease: EASE,
+      onComplete: () => {
+        if (d > 0) next();
+        else prev();
+        dragX.set(0);
+        dragY.set(0);
+        window.setTimeout(() => {
+          lock.current = false;
+          turnSource.current = "other";
+        }, 60);
+      },
+    });
+  };
+
+  const resetGesture = () => {
+    axis.current = null;
+    engaged.current = false;
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1 || lock.current) return;
+    const t = e.touches[0];
+    start.current = { x: t.clientX, y: t.clientY };
+    origin.current = { x: t.clientX, y: t.clientY };
+    axis.current = null;
+    engaged.current = false;
+    vel.current = { x: 0, y: 0 };
+    lastPt.current = { t: performance.now(), x: t.clientX, y: t.clientY };
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (lock.current) return;
+    const t = e.touches[0];
+    const dxAll = t.clientX - start.current.x;
+    const dyAll = t.clientY - start.current.y;
+
+    // lock the gesture to one axis after a little movement
+    if (!axis.current) {
+      if (Math.abs(dxAll) < 10 && Math.abs(dyAll) < 10) return;
+      axis.current = Math.abs(dyAll) > Math.abs(dxAll) ? "y" : "x";
+    }
+
+    if (axis.current === "y") {
+      const d = dyAll < 0 ? 1 : -1; // swipe up → next, swipe down → prev
+      if (!engaged.current) {
+        const scroller = (e.currentTarget as HTMLElement).querySelector(
+          "section > div"
+        ) as HTMLElement | null;
+        // let the page scroll natively until it reaches the edge, then take over
+        if (!atEdge(scroller, d)) return;
+        engaged.current = true;
+        origin.current.y = t.clientY; // rebase so the page doesn't jump
+      }
+      const raw = t.clientY - origin.current.y;
+      dragY.set(canTurn(d) ? raw * 0.9 : raw * 0.22); // resist at the ends
+    } else {
+      const d = dxAll < 0 ? 1 : -1; // swipe left → next, swipe right → prev
+      if (!engaged.current) {
+        engaged.current = true;
+        origin.current.x = t.clientX;
+      }
+      const raw = t.clientX - origin.current.x;
+      dragX.set(canTurn(d) ? raw * 0.9 : raw * 0.22);
+    }
+
+    // running velocity for flick detection
+    const now = performance.now();
+    const dt = Math.max(1, now - lastPt.current.t);
+    vel.current = {
+      x: (t.clientX - lastPt.current.x) / dt,
+      y: (t.clientY - lastPt.current.y) / dt,
+    };
+    lastPt.current = { t: now, x: t.clientX, y: t.clientY };
+  };
+
+  const onTouchEnd = () => {
+    if (lock.current || !engaged.current || !axis.current) {
+      resetGesture();
+      return;
+    }
+    const ax = axis.current;
+    const mv = ax === "y" ? dragY : dragX;
+    const off = mv.get();
+    const d = off < 0 ? 1 : -1;
+    const span = ax === "y" ? window.innerHeight : window.innerWidth;
+    const speed = ax === "y" ? vel.current.y : vel.current.x;
+    // turn if the page was dragged far enough, or flicked quickly
+    const pass = Math.abs(off) > span * 0.16 || Math.abs(speed) > 0.45;
+    if (pass && canTurn(d)) completeTurn(ax, d);
+    else animate(mv, 0, SPRING); // spring back — not far enough
+    resetGesture();
+  };
+
+  const onTouchCancel = () => {
+    if (!lock.current) {
+      animate(dragX, 0, SPRING);
+      animate(dragY, 0, SPRING);
+    }
+    resetGesture();
   };
 
   const d = dir.current;
+  const gesture = turnSource.current === "gesture";
   // Entrance-only, keyed by page: React remounts the section on each turn and
-  // the new page flips in. Reliable — no AnimatePresence exit to hang mid-turn.
+  // the new page animates in. Reliable — no AnimatePresence exit to hang.
+  // For finger turns the drag layer does the sliding, so the page just settles
+  // in with a soft fade; for wheel/keys it keeps the page-flip.
   const enter = reduced
     ? { opacity: 0 }
-    : {
-        opacity: 0,
-        rotateY: d > 0 ? 18 : -18,
-        x: d > 0 ? 130 : -130,
-        filter: "blur(5px)",
-        transformOrigin: d > 0 ? "left center" : "right center",
-      };
+    : gesture
+      ? { opacity: 0, scale: 0.985, filter: "blur(8px)" }
+      : {
+          opacity: 0,
+          rotateY: d > 0 ? 18 : -18,
+          x: d > 0 ? 130 : -130,
+          filter: "blur(5px)",
+          transformOrigin: d > 0 ? "left center" : "right center",
+        };
   const center = reduced
     ? { opacity: 1 }
-    : { opacity: 1, rotateY: 0, x: 0, filter: "blur(0px)" };
+    : { opacity: 1, rotateY: 0, x: 0, scale: 1, filter: "blur(0px)" };
 
   const current = PAGES[page];
 
@@ -169,17 +302,22 @@ export default function Book() {
         className="book-stage fixed inset-0 z-10"
         onWheel={onWheel}
         onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchCancel}
       >
-        <motion.section
-          key={current.id}
-          initial={enter}
-          animate={center}
-          transition={{ duration: reduced ? 0.25 : 0.62, ease: EASE }}
-          className="absolute inset-0"
-          aria-roledescription="slide"
-          aria-label={`${current.title} — page ${page + 1} of ${TOTAL}`}
-        >
+        {/* drag layer — follows the finger during a swipe (x/y), independent of
+            the page's own entrance transform below. */}
+        <motion.div className="absolute inset-0" style={{ x: dragX, y: dragY }}>
+          <motion.section
+            key={current.id}
+            initial={enter}
+            animate={center}
+            transition={{ duration: reduced ? 0.25 : 0.62, ease: EASE }}
+            className="absolute inset-0"
+            aria-roledescription="slide"
+            aria-label={`${current.title} — page ${page + 1} of ${TOTAL}`}
+          >
           {/* The SCROLLER is a separate, un-transformed layer. Mobile browsers
               break touch-scrolling on a 3D-transformed scroll container, so the
               page-turn transform stays on <section> and the scroll lives here.
@@ -199,7 +337,8 @@ export default function Book() {
               {current.node}
             </div>
           </div>
-        </motion.section>
+          </motion.section>
+        </motion.div>
       </div>
 
       <Chrome titles={PAGES.map((p) => p.title)} />
