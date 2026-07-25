@@ -65,7 +65,7 @@ src/
 
 - **Plans / prices** — `components/tiers.ts`
   (Starter ₹2,999 · Custom ₹6,999 · Signature "Let's talk").
-- **Contact inbox** — `INBOX` in `components/pages/Contact.tsx` (`akshay.dx4@gmail.com`).
+- **Contact inbox** — `INBOX` in `components/pages/Contact.tsx` (`dawndevs@hotmail.com`).
 - **WhatsApp** — set `WHATSAPP` in `Contact.tsx` to your number in international
   format (e.g. `919876543210`) to reveal a WhatsApp link.
 - **Theme colours** — the `--color-*` tokens in `globals.css`.

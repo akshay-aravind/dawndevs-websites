@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -18,31 +18,75 @@ const sans = Inter({
 });
 
 const SITE_URL = "https://dawndevs.dev";
+const SITE_NAME = "DawnDevs";
+const TITLE = "DawnDevs — Website Design & Development Studio";
+const DESCRIPTION =
+  "DawnDevs is a studio that builds one thing, beautifully: websites. Three clear ways to work together — Starter, Custom, and Signature — from ₹2,999.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "DawnDevs — website studio",
-  description:
-    "A studio that builds one thing, beautifully: websites. Three clear ways to work together — Starter, Custom, and Signature.",
+  title: {
+    default: TITLE,
+    template: "%s — DawnDevs",
+  },
+  description: DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: "Web Design",
   keywords: [
     "website design",
     "website development",
-    "web studio",
+    "web design studio",
     "custom website",
+    "web development studio",
+    "small business website",
+    "professional website design",
+    "responsive web design",
+    "landing page design",
     "DawnDevs",
   ],
+  alternates: {
+    canonical: "/",
+  },
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
-    title: "DawnDevs — website studio",
-    description: "We build one thing, beautifully: websites.",
+    title: TITLE,
+    description: DESCRIPTION,
     url: SITE_URL,
-    siteName: "DawnDevs",
+    siteName: SITE_NAME,
+    locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "DawnDevs — website studio",
-    description: "We build one thing, beautifully: websites.",
+    title: TITLE,
+    description: DESCRIPTION,
+    creator: "@dawndevs",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0b",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

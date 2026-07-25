@@ -4,10 +4,22 @@ import { useEffect, useState, type FormEvent } from "react";
 import Rise from "../Rise";
 import { useBook } from "../Book";
 
-const INBOX = "akshay.dx4@gmail.com";
+const INBOX = "dawndevs@hotmail.com";
 // TODO: add your WhatsApp number in international format (no +, e.g. "919876543210")
 // to reveal a "Chat on WhatsApp" link. Left blank so no placeholder number ships.
 const WHATSAPP = "";
+
+// Web3Forms — a free form backend, no server code needed. Submissions are
+// emailed to the address the key is registered to. The access key is public by
+// design (it's exposed in the browser either way), so it's committed here as the
+// default; an env var (NEXT_PUBLIC_WEB3FORMS_KEY) overrides it if you'd rather
+// keep it out of the repo. This default means the form works on any host with no
+// extra configuration. If the key is ever blanked, the form falls back to
+// opening the visitor's email app.
+const WEB3FORMS_ACCESS_KEY =
+  process.env.NEXT_PUBLIC_WEB3FORMS_KEY ??
+  "47be3ef1-261c-40bb-931b-664f74013547";
+const USES_WEB3FORMS = WEB3FORMS_ACCESS_KEY.length > 0;
 
 const PLANS = [
   "Starter — ₹2,999",
@@ -23,6 +35,9 @@ export default function Contact() {
   const [plan, setPlan] = useState(selectedPlan);
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [botField, setBotField] = useState(""); // honeypot — humans never fill it
 
   // preselect the plan the visitor picked on the pricing page
   useEffect(() => {
@@ -30,8 +45,8 @@ export default function Contact() {
     setPlan(match ?? "Not sure yet");
   }, [selectedPlan]);
 
-  function submit(e: FormEvent) {
-    e.preventDefault();
+  // No key configured yet → open the visitor's email app (the previous flow).
+  function mailtoFallback() {
     const subject = `New website enquiry — ${plan}`;
     const body = [
       `Name: ${name}`,
@@ -43,12 +58,53 @@ export default function Contact() {
       "",
       "— sent from dawndevs.dev",
     ].join("\n");
-    // TODO (delivery): swap this mailto for a POST to /api/contact (Resend) or a
-    // Formspree endpoint to capture enquiries server-side.
     window.location.href = `mailto:${INBOX}?subject=${encodeURIComponent(
       subject
     )}&body=${encodeURIComponent(body)}`;
-    setSent(true);
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (botField) return; // spam bot tripped the honeypot — drop it silently
+    setError("");
+
+    if (!USES_WEB3FORMS) {
+      mailtoFallback();
+      setSent(true);
+      return;
+    }
+
+    setSending(true);
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_ACCESS_KEY,
+          subject: `New website enquiry — ${plan}`,
+          from_name: "dawndevs.dev",
+          name,
+          email,
+          plan,
+          message: message || "(not provided)",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSent(true);
+      } else {
+        setError(
+          data.message ?? "Something went wrong — please try again or email us."
+        );
+      }
+    } catch {
+      setError("Couldn't send just now — please email us directly.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -103,11 +159,12 @@ export default function Contact() {
                 ✓
               </span>
               <h3 className="display text-2xl text-ink">
-                Your email is ready.
+                {USES_WEB3FORMS ? "Message sent." : "Your email is ready."}
               </h3>
               <p className="max-w-xs text-sm text-muted">
-                We opened your email app with everything filled in. Hit send and
-                we&apos;ll take it from there.
+                {USES_WEB3FORMS
+                  ? "Thanks for reaching out — we've got your details and will reply, usually within a day."
+                  : "We opened your email app with everything filled in. Hit send and we'll take it from there."}
               </p>
               <button
                 type="button"
@@ -119,6 +176,17 @@ export default function Contact() {
             </div>
           ) : (
             <div className="flex flex-col gap-5">
+              {/* honeypot — off-screen, hidden from humans, catches bots */}
+              <input
+                type="text"
+                name="botcheck"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden
+                value={botField}
+                onChange={(e) => setBotField(e.target.value)}
+                className="hidden"
+              />
               <Field label="Your name">
                 <input
                   required
@@ -158,12 +226,18 @@ export default function Contact() {
                   className="field resize-none rounded-lg"
                 />
               </Field>
+              {error && (
+                <p className="text-sm text-[#e6a08f]" role="alert">
+                  {error}
+                </p>
+              )}
               <button
                 type="submit"
-                className="btn-solid mt-1 inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3.5 text-sm font-medium"
+                disabled={sending}
+                className="btn-solid mt-1 inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send enquiry
-                <span aria-hidden>→</span>
+                {sending ? "Sending…" : "Send enquiry"}
+                {!sending && <span aria-hidden>→</span>}
               </button>
             </div>
           )}
