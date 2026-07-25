@@ -14,7 +14,7 @@ export default function Pricing() {
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <div className="mb-12 text-center">
+      <div className="mb-6 text-center">
         <Rise delay={0.05}>
           <p className="eyebrow mb-6">Pricing</p>
         </Rise>
@@ -31,7 +31,7 @@ export default function Pricing() {
           return (
             <Rise key={t.id} delay={0.2 + i * 0.1}>
               <div
-                className={`flex h-full flex-col rounded-2xl p-6 transition-transform duration-500 md:p-8 ${
+                className={`flex h-full flex-col rounded-2xl p-6 transition-transform duration-500 md:p-6 ${
                   featured
                     ? "bg-ink text-bg md:-translate-y-3 md:shadow-[0_40px_80px_-40px_rgba(0,0,0,0.9)]"
                     : "card text-ink"
@@ -52,7 +52,7 @@ export default function Pricing() {
                   )}
                 </div>
 
-                <div className="mt-5 flex items-baseline gap-2 md:mt-6">
+                <div className="mt-4 flex items-baseline gap-2 md:mt-4">
                   <span className="display text-4xl md:text-5xl">{t.price}</span>
                   {t.priceNote && (
                     <span
@@ -74,12 +74,12 @@ export default function Pricing() {
                 </p>
 
                 <div
-                  className={`my-5 h-px w-full md:my-7 ${
+                  className={`my-4 h-px w-full md:my-5 ${
                     featured ? "bg-bg/15" : "bg-line"
                   }`}
                 />
 
-                <ul className="flex flex-1 flex-col gap-3">
+                <ul className="flex flex-1 flex-col gap-2.5">
                   {t.features.map((f) => (
                     <li
                       key={f}
@@ -106,7 +106,7 @@ export default function Pricing() {
 
                 <button
                   onClick={() => choose(t.name, t.price)}
-                  className={`mt-8 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm ${
+                  className={`mt-6 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm ${
                     featured
                       ? "bg-bg text-ink transition-opacity hover:opacity-90"
                       : "btn-ghost"
@@ -122,7 +122,7 @@ export default function Pricing() {
       </div>
 
       <Rise delay={0.6}>
-        <p className="mt-8 text-center text-xs text-faint">
+        <p className="mt-5 text-center text-xs text-faint">
           Every plan includes a friendly, jargon-free process from first sketch
           to launch.
         </p>

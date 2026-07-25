@@ -10,6 +10,7 @@ import {
 } from "react";
 import { motion } from "motion/react";
 import Atmosphere from "./Atmosphere";
+import ShaderBackdrop from "./ShaderBackdrop";
 import Landing from "./pages/Landing";
 import Approach from "./pages/Approach";
 import Pricing from "./pages/Pricing";
@@ -162,6 +163,7 @@ export default function Book() {
       value={{ page, total: TOTAL, goTo, next, prev, reduced, booting, selectedPlan, setSelectedPlan }}
     >
       <Atmosphere />
+      <ShaderBackdrop />
 
       <div
         className="book-stage fixed inset-0 z-10"
@@ -193,7 +195,7 @@ export default function Book() {
           >
             {/* min-h-full: centres content when it fits, scrolls from the top
                 (no clipping) when it's taller than the screen. */}
-            <div className="flex min-h-full items-center justify-center px-5 py-20 md:px-10 md:py-24">
+            <div className="flex min-h-full items-center justify-center px-5 py-12 md:px-10 md:py-12">
               {current.node}
             </div>
           </div>
@@ -242,7 +244,7 @@ function Chrome({ titles }: { titles: string[] }) {
             className="fixed left-5 top-6 z-40 flex items-center gap-2.5 md:left-10"
             aria-label="Back to start"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-ink" />
+         
             <span className="font-sans text-sm font-medium tracking-tight text-ink">
               dawn<span className="text-faint">devs</span>
             </span>
