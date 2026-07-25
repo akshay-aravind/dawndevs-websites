@@ -99,6 +99,18 @@ export default function Book() {
   // keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // don't hijack keys (esp. Space / arrows) while the visitor is typing in a
+      // form field — otherwise Space turns the page instead of adding a space.
+      const el = e.target as HTMLElement | null;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable)
+      ) {
+        return;
+      }
       if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(e.key)) {
         e.preventDefault();
         next();
